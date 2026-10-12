@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+<title id="title">D — Excel Analytics</title>
+<defs>
+ <linearGradient id="mark" x1=".15" y1=".08" x2=".82" y2=".98" objectBoundingBox="true"><stop offset="0" stop-color="#f7fbff"/><stop offset=".46" stop-color="#c2d7ff"/><stop offset="1" stop-color="#648bff"/></linearGradient>
+ <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fc6ff"/><stop offset="1" stop-color="#5481fa"/></linearGradient>
+</defs>
+<rect width="64" height="64" rx="14" fill="#122341"/>
+<path d="M14 12h21c13.4 0 22 8.4 22 20S48.4 52 35 52H14V28c0-2.5 1.9-4.5 4.3-4.5s4.3 2 4.3 4.5v16h12.2c8.6 0 13.6-4.8 13.6-12s-5-12-13.6-12H14c-2.4 0-4.3-1.8-4.3-4s1.9-4 4.3-4Z" fill="url(#mark)"/>
+<rect x="26" y="34" width="5.2" height="9" rx="2" fill="url(#bar)"/>
+<rect x="33.4" y="29" width="5.2" height="14" rx="2" fill="url(#bar)"/>
+<rect x="40.8" y="24.5" width="5.2" height="18.5" rx="2" fill="url(#bar)"/>
+</svg>

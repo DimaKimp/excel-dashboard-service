@@ -1,33 +1,37 @@
+
 'use strict';
 
-// Статический сайт: год и необязательная аналитика без серверной части.
-// Cloudflare Web Analytics подключён отдельно в index.html.
+// Год в подвале сайта.
 const year = document.getElementById('year');
 if (year) year.textContent = String(new Date().getFullYear());
 
+// Microsoft Clarity подключается только после согласия.
 const CLARITY_PROJECT_ID = 'ywr5x35xgy';
 const CONSENT_KEY = 'excel_analytics_clarity_consent_v1';
+
 const banner = document.getElementById('analytics-consent');
 const settingsButton = document.getElementById('consent-settings');
-const acceptButton = document.getElementById('consent-accept');
-const declineButton = document.getElementById('consent-decline');
 
 let clarityStarted = false;
 let consent = null;
+
 try {
-  const saved = window.localStorage.getItem(CONSENT_KEY);
-  if (saved === 'accepted' || saved === 'declined') consent = saved;
+  const saved = localStorage.getItem(CONSENT_KEY);
+  if (saved === 'accepted' || saved === 'declined') {
+    consent = saved;
+  }
 } catch (_) {
-  // Если localStorage недоступен, запрашиваем выбор заново.
+  // Если хранилище недоступно, выбор запрашивается снова.
 }
 
 function startClarity() {
   if (clarityStarted || consent !== 'accepted') return;
   clarityStarted = true;
 
-  // Стандартный загрузчик Microsoft Clarity, вызывается только после согласия.
-  (function (c, l, a, r, i, t, y) {
-    c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments); };
+  (function(c, l, a, r, i, t, y) {
+    c[a] = c[a] || function() {
+      (c[a].q = c[a].q || []).push(arguments);
+    };
     t = l.createElement(r);
     t.async = true;
     t.src = 'https://www.clarity.ms/tag/' + i;
@@ -35,8 +39,10 @@ function startClarity() {
     y.parentNode.insertBefore(t, y);
   })(window, document, 'clarity', 'script', CLARITY_PROJECT_ID);
 
-  // Согласие на аналитику — без разрешения рекламного хранения.
-  window.clarity('consentv2', { ad_Storage: 'denied', analytics_Storage: 'granted' });
+  window.clarity('consentv2', {
+    ad_Storage: 'denied',
+    analytics_Storage: 'granted'
+  });
 }
 
 function updateConsentUi() {
@@ -47,36 +53,80 @@ function updateConsentUi() {
 function chooseConsent(choice) {
   const previous = consent;
   consent = choice;
-  try { window.localStorage.setItem(CONSENT_KEY, choice); } catch (_) {}
+
+  try {
+    localStorage.setItem(CONSENT_KEY, choice);
+  } catch (_) {}
+
   updateConsentUi();
 
-  // После отзыва согласия перегружаем страницу, чтобы завершить текущую
-  // запись Clarity. Новая загрузка уже не подключит его скрипт.
-  if (choice === 'declined' && previous === 'accepted' && clarityStarted) {
-    window.location.reload();
+  if (choice === 'declined' &&
+      previous === 'accepted' &&
+      clarityStarted) {
+    location.reload();
     return;
   }
+
   if (choice === 'accepted') startClarity();
 }
 
-if (acceptButton) acceptButton.addEventListener('click', () => chooseConsent('accepted'));
-if (declineButton) declineButton.addEventListener('click', () => chooseConsent('declined'));
-if (settingsButton) {
-  settingsButton.addEventListener('click', () => {
-    // Выбор меняется только явным нажатием «Разрешить» или «Отклонить».
+// Обработка нажатий на кнопки согласия.
+document.addEventListener('click', function(event) {
+  const target = event.target instanceof Element
+    ? event.target
+    : null;
+
+  if (!target) return;
+
+  if (target.closest('#consent-decline')) {
+    event.preventDefault();
+    chooseConsent('declined');
+  } else if (target.closest('#consent-accept')) {
+    event.preventDefault();
+    chooseConsent('accepted');
+  } else if (target.closest('#consent-settings')) {
+    event.preventDefault();
+
     if (banner) banner.hidden = false;
-    settingsButton.hidden = true;
-  });
+    if (settingsButton) settingsButton.hidden = true;
+  }
+}, true);
+
+// Даём кнопкам возможность принимать нажатия.
+for (const id of [
+  'consent-accept',
+  'consent-decline',
+  'consent-settings'
+]) {
+  const button = document.getElementById(id);
+
+  if (button) {
+    button.style.pointerEvents = 'auto';
+    button.style.position = 'relative';
+    button.style.zIndex = '2';
+  }
 }
+
 updateConsentUi();
 if (consent === 'accepted') startClarity();
 
-// Три основных CTA: фиксируем намерение открыть Telegram,
-// но НЕ считаем это отправленной заявкой или оплаченным заказом.
-for (const link of document.querySelectorAll('a.tracked[data-cta]')) {
-  link.addEventListener('click', () => {
-    if (consent !== 'accepted' || !clarityStarted || typeof window.clarity !== 'function') return;
+// События перехода в Telegram.
+for (const link of document.querySelectorAll(
+  'a.tracked[data-cta]'
+)) {
+  link.addEventListener('click', function() {
+    if (consent !== 'accepted' ||
+        !clarityStarted ||
+        typeof window.clarity !== 'function') {
+      return;
+    }
+
     window.clarity('event', 'telegram_click');
-    window.clarity('set', 'telegram_button', link.dataset.cta || 'unknown');
+
+    window.clarity(
+      'set',
+      'telegram_button',
+      link.dataset.cta || 'unknown'
+    );
   });
 }

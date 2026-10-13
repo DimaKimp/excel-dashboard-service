@@ -3,7 +3,6 @@
 .service-card{display:flex;flex-direction:column}
 .service-card span{margin-top:auto}
 @media(max-width:680px){.service-card{padding:25px 24px}}
-\n
 /* Выбор необязательной аналитики Microsoft Clarity */
 .consent-banner[hidden],.consent-settings[hidden]{display:none!important}
 .consent-banner{position:fixed;z-index:1000;left:18px;right:18px;bottom:18px;max-width:1000px;margin:0 auto;border:1px solid #425b88;border-radius:16px;background:#111f38;color:#f5f8ff;padding:22px 24px;box-shadow:0 18px 52px #020915c7;display:flex;align-items:center;gap:20px}
@@ -15,3 +14,8 @@
 .consent-settings{position:fixed;z-index:999;bottom:12px;left:12px;padding:7px 11px;border:1px solid #526d9f;border-radius:9px;background:#10203b;color:#e7efff;font-size:11px;cursor:pointer;opacity:.78}
 .consent-settings:hover{opacity:1}
 @media(max-width:680px){.consent-banner{left:10px;right:10px;bottom:10px;padding:17px;display:block}.consent-actions{margin-top:14px}.consent-btn{flex:1}.consent-settings{font-size:10px;padding:6px 8px}}
+/* Скрытие элементов после выбора согласия */
+#analytics-consent[hidden],
+#consent-settings[hidden] {
+    display: none !important;
+}

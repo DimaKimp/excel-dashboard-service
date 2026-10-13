@@ -1,42 +1,61 @@
 
 'use strict';
 
-// Год в подвале сайта.
-const year = document.getElementById('year');
-if (year) year.textContent = String(new Date().getFullYear());
+// ======================================================
+// 1. Текущий год в подвале сайта
+// ======================================================
 
-// Microsoft Clarity подключается только после согласия.
+const year = document.getElementById('year');
+
+if (year) {
+  year.textContent = String(new Date().getFullYear());
+}
+
+
+// ======================================================
+// 2. Настройки Microsoft Clarity
+// ======================================================
+
 const CLARITY_PROJECT_ID = 'ywr5x35xgy';
-const CONSENT_KEY = 'excel_analytics_clarity_consent_v1';
 
 const banner = document.getElementById('analytics-consent');
 const settingsButton = document.getElementById('consent-settings');
 
 let clarityStarted = false;
+
+// При каждой загрузке страницы согласие отсутствует.
+// localStorage и sessionStorage для согласия не используем.
 let consent = null;
 
-try {
-  const saved = localStorage.getItem(CONSENT_KEY);
-  if (saved === 'accepted' || saved === 'declined') {
-    consent = saved;
-  }
-} catch (_) {
-  // Если хранилище недоступно, выбор запрашивается снова.
-}
+
+// ======================================================
+// 3. Подключение Clarity только после разрешения
+// ======================================================
 
 function startClarity() {
-  if (clarityStarted || consent !== 'accepted') return;
+  if (clarityStarted || consent !== 'accepted') {
+    return;
+  }
+
   clarityStarted = true;
 
   (function(c, l, a, r, i, t, y) {
     c[a] = c[a] || function() {
       (c[a].q = c[a].q || []).push(arguments);
     };
+
     t = l.createElement(r);
     t.async = true;
     t.src = 'https://www.clarity.ms/tag/' + i;
+
     y = l.getElementsByTagName(r)[0];
-    y.parentNode.insertBefore(t, y);
+
+    if (y && y.parentNode) {
+      y.parentNode.insertBefore(t, y);
+    } else {
+      l.head.appendChild(t);
+    }
+
   })(window, document, 'clarity', 'script', CLARITY_PROJECT_ID);
 
   window.clarity('consentv2', {
@@ -45,54 +64,106 @@ function startClarity() {
   });
 }
 
+
+// ======================================================
+// 4. Показ и скрытие окна согласия
+// ======================================================
+
 function updateConsentUi() {
-  if (banner) banner.hidden = consent !== null;
-  if (settingsButton) settingsButton.hidden = consent === null;
+  if (banner) {
+    // Пока решение не принято, окно видно.
+    banner.hidden = consent !== null;
+  }
+
+  if (settingsButton) {
+    // После решения доступно изменение настроек.
+    settingsButton.hidden = consent === null;
+  }
 }
 
+
+// ======================================================
+// 5. Обработка выбора пользователя
+// ======================================================
+
 function chooseConsent(choice) {
-  const previous = consent;
-  consent = choice;
-
-  try {
-    localStorage.setItem(CONSENT_KEY, choice);
-  } catch (_) {}
-
-  updateConsentUi();
-
-  if (choice === 'declined' &&
-      previous === 'accepted' &&
-      clarityStarted) {
-    location.reload();
+  if (choice !== 'accepted' && choice !== 'declined') {
     return;
   }
 
-  if (choice === 'accepted') startClarity();
+  const wasClarityStarted = clarityStarted;
+
+  consent = choice;
+
+  // Не сохраняем согласие между загрузками страницы.
+  updateConsentUi();
+
+  if (choice === 'accepted') {
+    startClarity();
+    return;
+  }
+
+  // Если Clarity уже запущен, отзываем разрешение.
+  if (choice === 'declined' && wasClarityStarted) {
+    if (typeof window.clarity === 'function') {
+      window.clarity('consentv2', {
+        ad_Storage: 'denied',
+        analytics_Storage: 'denied'
+      });
+    }
+
+    // Обновляем страницу, чтобы прекратить текущий
+    // сеанс работы подключённого Clarity.
+    // После F5 снова будет запрошено согласие.
+    window.location.reload();
+  }
 }
 
-// Обработка нажатий на кнопки согласия.
+
+// ======================================================
+// 6. Обработка нажатий на кнопки
+// ======================================================
+
 document.addEventListener('click', function(event) {
   const target = event.target instanceof Element
     ? event.target
     : null;
 
-  if (!target) return;
+  if (!target) {
+    return;
+  }
 
   if (target.closest('#consent-decline')) {
     event.preventDefault();
     chooseConsent('declined');
-  } else if (target.closest('#consent-accept')) {
+    return;
+  }
+
+  if (target.closest('#consent-accept')) {
     event.preventDefault();
     chooseConsent('accepted');
-  } else if (target.closest('#consent-settings')) {
+    return;
+  }
+
+  if (target.closest('#consent-settings')) {
     event.preventDefault();
 
-    if (banner) banner.hidden = false;
-    if (settingsButton) settingsButton.hidden = true;
+    if (banner) {
+      banner.hidden = false;
+    }
+
+    if (settingsButton) {
+      settingsButton.hidden = true;
+    }
   }
+
 }, true);
 
-// Даём кнопкам возможность принимать нажатия.
+
+// ======================================================
+// 7. Обеспечиваем доступность кнопок
+// ======================================================
+
 for (const id of [
   'consent-accept',
   'consent-decline',
@@ -107,17 +178,29 @@ for (const id of [
   }
 }
 
-updateConsentUi();
-if (consent === 'accepted') startClarity();
 
-// События перехода в Telegram.
+// ======================================================
+// 8. Первоначальное состояние страницы
+// ======================================================
+
+// Окно появляется при КАЖДОЙ загрузке страницы.
+// Clarity до нажатия "Разрешить" не подключаем.
+updateConsentUi();
+
+
+// ======================================================
+// 9. Отслеживание нажатий на Telegram
+// ======================================================
+
 for (const link of document.querySelectorAll(
   'a.tracked[data-cta]'
 )) {
   link.addEventListener('click', function() {
-    if (consent !== 'accepted' ||
-        !clarityStarted ||
-        typeof window.clarity !== 'function') {
+    if (
+      consent !== 'accepted' ||
+      !clarityStarted ||
+      typeof window.clarity !== 'function'
+    ) {
       return;
     }
 
